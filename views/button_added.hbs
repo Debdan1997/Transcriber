@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+    <head><meta charset="UTF-8"></head>
+    <body>
+        <button id = "record">Start</button>
+        <button id = "stop">Stop</button>
+        <textarea id="response">InitialText</textarea>
+        <textarea id="query">Type query</textarea>
+        <button id = "getquery">GetQuery</button>
+        <textarea id="result">Query result</textarea>
+        <pre>
+            Usage:
+            1. Via audio : speak after clicking start button. On cliking stop, the transcription will be shown in transcrription textarea and result in query result area.
+            2. Via text : type query in "type query" area. On clicking getQuery, query result will be shown in Query result textbox
+        </pre>
+        <script type = "text/javascript">
+
+
+
+        const recordAudio = () =>
+        new Promise(async resolve => {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: {
+                channelCount : 1,
+                frameRate: 44100,
+                sampleSize: 16
+            }});
+            var options = {
+                audioBitsPerSecond: 128000,
+                mimeType: 'audio/webm'
+            }
+            const mediaRecorder = new MediaRecorder(stream,options);
+            let audioChunks = [];
+
+            mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+            });
+
+            const start = () => {
+                audioChunks = [];
+                mediaRecorder.start();
+            };
+
+            const stop = () =>
+                new Promise(resolve => {
+                mediaRecorder.addEventListener('stop', () => {
+                    const audioBlob = new Blob(audioChunks,{type:'audio/wav'});
+                    resolve({audioBlob});
+                });
+
+                mediaRecorder.stop();
+            });
+
+            resolve({ start, stop });
+        });
+
+        const recordButton = document.querySelector('#record');
+        const stopButton = document.querySelector('#stop');
+        const queryButton = document.querySelector('#getquery')
+
+        let recorder;
+        let audio;
+
+        recordButton.addEventListener('click', async () => {
+            recordButton.setAttribute('disabled', true);
+            stopButton.removeAttribute('disabled');
+            if (!recorder) {
+                recorder = await recordAudio();
+            }
+            recorder.start();
+        });
+
+        stopButton.addEventListener('click', async () => {
+            recordButton.removeAttribute('disabled');
+            stopButton.setAttribute('disabled', true);
+            audio = await recorder.stop();
+            var fd = new FormData();
+            fd.append('upl', audio.audioBlob, 'blobby.mp3');
+            fetch('https://localhost:3100/test',
+            {
+                method: 'post',
+                body: fd
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                document.getElementById("response").value = data["transcription"];
+                document.getElementById("result").value = data["query_result"];
+            })
+            .catch(err => console.log(err));
+        });
+
+
+        queryButton.addEventListener('click',async()=>{
+            var data = document.getElementById("query").value;
+            fd = new FormData();
+            fd.append('query',data);
+            fetch('https://localhost:3100/query',
+            {
+                method:'post',
+                body: fd
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                document.getElementById("result").value = JSON.stringify(data);
+            })
+            .catch(err => console.log(err));
+        })
+
+
+        </script>
+    </body>
+</html>
