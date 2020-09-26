@@ -69,7 +69,7 @@ app.post('/test',type,function (req, res) {
     getTranscribe(result,en_model)
     .then(fin =>{
       console.log(fin)
-      fetch('http://srivalab-compute.cse.iitk.ac.in:5008/page?query='+fin)
+      fetch('http://localhost:8888/page?query='+fin)
       .then((response)=>{
         response.json().then((data)=>{
           console.log(data);
@@ -109,14 +109,9 @@ app.post('/transcribe',type, function (req, res) {
   })
 });
 
-
-dns.lookup('www.google.com', (err, address, family) => {
-  console.log('address: %j family: IPv%s', address, family);
-});
-
 app.post('/query',type,function (req,res){
   console.log(req.body['query']);
-  fetch('http://srivalab-compute.cse.iitk.ac.in:5008/page?query='+req.body['query'])
+  fetch('http://localhost:8888/page?query='+req.body['query'])
   .then((response)=>{
     response.json().then((data)=>{
       res.send(data)
